@@ -1,23 +1,35 @@
+// all variables here
+
 const canvas = document.getElementById("mycanvas");
 const ctx = canvas.getContext('2d');
 var boxHeight = 75;
 var boxWidth = 75;
 var obstacleHeight = 250;
 var obstacleWidth = 50;
-var x = 10;
-var y = canvas.height - boxHeight - 5;
+var xposition = 10;
+var yposition = canvas.height - boxHeight - 5;
 var dx = 2;
 var gravity = true;
 var leftPressed = false;
 var rightPressed = false;
-var ox = canvas.width - obstacleWidth;
-var oy = canvas.height - obstacleHeight;
+// var ox1 = canvas.width - obstacleWidth;
+// var ox2 = canvas.width - obstacleWidth;
+// var oy1 = canvas.height - obstacleHeight;
+// var oy2 = canvas.height - obstacleHeight;
 var obstacles = [];
 var cnt = 0;
 var f = 0;
+var f2 = 0;
 var score = 0;
 var highScore = parseInt(localStorage.getItem("score"));
 
+/* hackermode:-i) use vertically assymmetric shap like triangle as a runner
+ii) generate different shaped obstacles that move up and down
+iii) generate power-ups on the map that activates abilities for sometime like invincibility
+
+*/
+
+// randome numbers generator for width of the obstacle
 function generateRandom(min = 50, max = 500) {
 
     // find diff
@@ -34,17 +46,29 @@ function generateRandom(min = 50, max = 500) {
 
     return rand;
 }
+
+// 0 and 1 generator for y-axis of obstacle
 function getrandomInt(max) {
     return Math.floor(Math.random() * max);
 }
 
-for (var i = 1; i <= 15; i++) {
-    obstacles[i] = { x: generateRandom(50, 500), y: getrandomInt(2) };
+// assign widths to x-axis
+for (var i = 0; i < 15; i++) {
+    obstacles[i] = { width: generateRandom(50, 500), x: canvas.width, y: getrandomInt(2), flag: 0 };
 }
+
+obstacles.forEach(obstacle => {
+    if (obstacle.y == 0) {
+        obstacle.y = 0;
+    }
+    else {
+        obstacle.y = canvas.height - obstacleHeight;
+    }
+});
 
 // getrandomInt(2) gives 0 or 1 randomly
 
-
+// even listeners 
 document.addEventListener("keypress", gravityHandler);
 document.addEventListener("keyup", keyupHandler);
 document.addEventListener("keydown", keydownHandler);
@@ -53,11 +77,11 @@ function gravityHandler(e) {
     if (e.key == " ") {
         if (gravity == true) {
             gravity = false;
-            y = 5;
+            yposition = 5;
         }
         else {
             gravity = true;
-            y = canvas.height - boxHeight - 5;
+            yposition = canvas.height - boxHeight - 5;
         }
     }
 }
@@ -81,94 +105,107 @@ function keydownHandler(e) {
     }
 }
 
+// to keep track of score
 function drawScore() {
     ctx.font = "16px Arial";
-    ctx.fillStyle = "white";
+    ctx.fillStyle = "black";
     ctx.fillText("score: " + score, canvas.width - 100, canvas.height - 50);
 }
+// for high score
 function drawHighScore() {
     ctx.font = "16px Arial";
-    ctx.fillStyle = "white";
+    ctx.fillStyle = "black";
     ctx.fillText("HighScore: " + highScore, canvas.width - 125, 50);
 }
 
+// runner
 function drawBox() {
     ctx.beginPath();
-    ctx.rect(x, y, boxWidth, boxHeight);
-    ctx.fillStyle = "cyan";
+    ctx.rect(xposition, yposition, boxWidth, boxHeight);
+    ctx.fillStyle = "#DC143C";
     ctx.fill();
     ctx.closePath();
 }
-
+// obstacle
 function drawObstacle() {
-    {
-        if (f) {
+    obstacles.forEach(obstacle => {
+        if (obstacle.flag == 1) {
+            ctx.beginPath();
+            ctx.rect(obstacle.x, obstacle.y, obstacle.width, obstacleHeight);
+            ctx.fillStyle = "cyan";
             ctx.fill();
-            obstacleWidth = obstacles[cnt].x;
-            ox = canvas.width;
-            if (obstacles[cnt].y == 0) {
-                oy = 0;
-            }
-            else {
-                oy = canvas.height - obstacleHeight;
-            }
-            f = 0;
+            ctx.closePath();
         }
-        ctx.beginPath();
-        ctx.rect(ox, oy, obstacleWidth, obstacleHeight);
-        ctx.fillStyle = "cyan";
-        ctx.fill();
-        ctx.closePath();
-    }
+    });
 }
-
+// to initiate the game
+if (!f) {
+    obstacles[0].flag = 1;
+}
+// draw function (main function)
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawBox();
     drawObstacle();
     drawScore();
     drawHighScore();
-    console.log("hello");
-    ox -= dx;
-    //score++;
 
     if (leftPressed) {
 
-        x -= dx;
-        if (x <= 0) {
-            x = 0;
+        xposition -= dx;
+        if (xposition <= 0) {
+            xposition = 0;
         }
     }
     if (rightPressed) {
-        x += dx;
+        xposition += dx;
     }
-    if (ox + obstacleWidth <= 0) {
-        cnt++;
-        score++;
-        if (score % 2 == 0) {
-            dx += 1;
-        }
-        if (cnt == 16) {
-            cnt = 1;
-            //dx += 2;
-        }
-        f = 1;
-    }
-    if ((ox <= x + boxWidth && ox + obstacleWidth > x) && (oy < y && oy + obstacleHeight > y)) {
-        alert("Your score is " + score);
-        if (localStorage.getItem("score")) {
-            if (score > parseInt(localStorage.getItem("score"))) {
-                localStorage.setItem("score", score);
+
+    for (var i = 0; i < 15; i++) {
+        //f = 0;
+        if (obstacles[i].flag == 1) {
+
+            var ox1 = obstacles[i].x;
+            var oy1 = obstacles[i].y;
+            ox1 -= dx;
+            if (ox1 + obstacles[i].width <= 0) {
+                //cnt++;
+                obstacles[i].flag = 0;
+                ox1 = canvas.width;
+                score++;
+                if (score % 2 == 0) {
+                    dx += 1;
+                }
             }
-        } else {
-            localStorage.setItem("score", score);
+
+            if ((ox1 < xposition + boxWidth && ox1 + obstacleWidth > xposition) && (oy1 < yposition && oy1 + obstacleHeight > yposition)) {
+                alert("Your score is " + score);
+                if (localStorage.getItem("score")) {
+                    if (score > parseInt(localStorage.getItem("score"))) {
+                        localStorage.setItem("score", score);
+                    }
+                } else {
+                    localStorage.setItem("score", score);
+                }
+                document.location.reload();
+            }
+            if (ox1 + obstacles[i].width <= 2 * (canvas.width) / 3) {
+                if (i + 1 == 15) {
+                    // i = 0;
+                    obstacles[0].flag = 1;
+                }
+                else {
+                    var next = i + 1;
+                    obstacles[next].flag = 1;
+                    //obstacles[i + 1].x = canvas.width;
+                }
+
+            }
+            obstacles[i].x = ox1;
         }
-        document.location.reload();
+
     }
     requestAnimationFrame(draw);
 }
 draw();
 
-
-
-//drawBox();
